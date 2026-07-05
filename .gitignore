@@ -1,0 +1,40 @@
+# VSCode / SFDX / entornos
+.vscode/
+.sfdx/
+.env
+.env.*
+!.env.example
+
+# Builds y dependencias
+/dist
+/node_modules
+
+# Traefik ACME
+/data/traefik/acme/*
+!/data/traefik/acme/.gitkeep
+
+# Store
+store/images/*
+!store/images/.gitkeep
+
+# Store
+store/images/*
+!store/images/.gitkeep
+
+# Store
+storage/images/*
+!storage/images/.gitkeep
+
+# Store
+output/*
+!output/.gitkeep
+
+# Logs Traefik
+logs/*
+!logs/.gitkeep
+
+# Coverage
+/coverage
+
+# Certificados locales
+certs/
