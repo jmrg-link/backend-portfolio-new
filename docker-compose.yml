@@ -1,0 +1,24 @@
+# MongoDB 8.0 local para desarrollo: replica set de un nodo (rs0), sin auth.
+# El replica set habilita transacciones y el futuro event store de Emmett.
+# El healthcheck inicia rs0 anunciando localhost:27017 para conectar desde el host.
+services:
+  mongodb:
+    image: mongo:8.0
+    container_name: portfolio-mongodb
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    healthcheck:
+      test: >
+        mongosh --quiet --eval
+        "try { rs.status().ok } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'localhost:27017'}]}).ok }"
+      interval: 5s
+      timeout: 10s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  mongodb-data:
