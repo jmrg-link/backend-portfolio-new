@@ -11,6 +11,11 @@ import type { FindRangeOptions, IBlogRepository } from './types';
 /**
  * Acceso a datos del blog sobre la colección `blogposts`: hereda las
  * operaciones comunes de la base y añade las consultas propias del slice.
+ *
+ * @remarks
+ * Los listados ordenan por `date` descendente con `_id` como desempate
+ * final: el orden resulta total y la paginación con skip/limit es
+ * estable entre páginas.
  */
 export class BlogRepository
   extends BaseRepository<IBlogPost, BlogPostEntity, CreateBlogPostData>
@@ -34,7 +39,7 @@ export class BlogRepository
       filter: { published: true, ...(locale !== undefined && { locale }) },
       skip,
       limit,
-      sort: { date: -1 },
+      sort: { date: -1, _id: -1 },
       projection: { content: 0 },
     });
   }
@@ -45,7 +50,7 @@ export class BlogRepository
       filter: locale === undefined ? {} : { locale },
       skip,
       limit,
-      sort: { date: -1 },
+      sort: { date: -1, _id: -1 },
       projection: { content: 0 },
     });
   }

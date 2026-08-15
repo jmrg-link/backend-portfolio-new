@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildTestApp, closeTestApp } from '../helpers/build-app';
 import { adminHeaders } from '../helpers/auth';
+import { collectPaginatedIds } from '../helpers/pagination';
 
 interface BlogItem {
   _id?: string;
@@ -141,6 +142,22 @@ describe('blog lecturas públicas', () => {
     const body = response.json<PaginatedBlog>();
     expect(body.meta.page).toBe(1);
     expect(body.meta.limit).toBe(100);
+  });
+
+  it('pagina el listado de servicio sin duplicar ni omitir posts', async () => {
+    const full = await app.inject({ method: 'GET', url: '/api/v1/blog', headers });
+    const total = full.json<BlogItem[]>().length;
+    const ids = await collectPaginatedIds(app, '/api/v1/blog', 5, headers);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids.length).toBe(total);
+  });
+
+  it('pagina el listado de administración sin duplicar ni omitir posts', async () => {
+    const full = await app.inject({ method: 'GET', url: '/api/v1/admin/blog', headers });
+    const total = full.json<BlogItem[]>().length;
+    const ids = await collectPaginatedIds(app, '/api/v1/admin/blog', 5, headers);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids.length).toBe(total);
   });
 
   it('lee un post por slug con locale es por defecto y con content', async () => {
