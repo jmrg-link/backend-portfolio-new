@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildTestApp, closeTestApp } from '../helpers/build-app';
 import { adminHeaders } from '../helpers/auth';
+import { collectPaginatedIds } from '../helpers/pagination';
 
 interface ProjectItem {
   slug: string;
@@ -44,6 +45,14 @@ describe('projects lecturas públicas', () => {
 
   afterAll(async () => {
     await closeTestApp(app);
+  });
+
+  it('pagina el listado de servicio sin duplicar ni omitir proyectos', async () => {
+    const full = await app.inject({ method: 'GET', url: '/api/v1/projects', headers });
+    const total = full.json<ProjectItem[]>().length;
+    const ids = await collectPaginatedIds(app, '/api/v1/projects', 2, headers);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids.length).toBe(total);
   });
 
   it('lista sin locale los proyectos de ambos idiomas con proyección meta', async () => {

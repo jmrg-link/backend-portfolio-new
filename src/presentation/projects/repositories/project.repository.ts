@@ -10,7 +10,9 @@ import type { IProjectRepository } from './types';
  *
  * @remarks
  * El orden de los listados es `order` ascendente y, a igualdad, `date`
- * descendente.
+ * descendente; el listado paginado añade `_id` como desempate final,
+ * de modo que el orden es total y la paginación con skip/limit resulta
+ * estable entre páginas.
  */
 export class ProjectRepository
   extends BaseRepository<IProject, ProjectEntity, CreateProjectData>
@@ -30,7 +32,7 @@ export class ProjectRepository
       filter: { published: true, ...(locale !== undefined && { locale }) },
       skip,
       limit,
-      sort: { order: 1, date: -1 },
+      sort: { order: 1, date: -1, _id: -1 },
       projection: { content: 0 },
     });
   }
