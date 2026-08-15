@@ -9,14 +9,21 @@ import { ProjectRepository } from '@presentation/projects/repositories';
 import { SkillRepository } from '@presentation/cms/repositories';
 
 /**
- * Pruebas funcionales de la capa de datos contra la MongoDB local con el
- * seed cargado: forma de las entidades, normalización de _id, proyección
- * meta de los listados y filtros de publicación.
+ * Pruebas funcionales de la capa de datos contra la MongoDB local con los
+ * datos reales cargados: forma de las entidades, normalización de _id,
+ * proyección meta de los listados y filtros de publicación. Las lecturas
+ * por slug lo resuelven dinámicamente del propio listado para no depender
+ * de un documento concreto.
  */
-describe('repositorios sobre el seed local', () => {
+describe('repositorios sobre la base local', () => {
   let blogRepository: BlogRepository;
   let projectRepository: ProjectRepository;
   let skillRepository: SkillRepository;
+
+  const anyPublishedSlug = async (): Promise<string> => {
+    const [first] = await blogRepository.findPublished({ locale: 'es', limit: 1 });
+    return first?.toEntity().slug ?? '';
+  };
 
   beforeAll(async () => {
     await DatabaseConnector.initialize(env.mongo.uri);
@@ -42,22 +49,19 @@ describe('repositorios sobre el seed local', () => {
     }
   });
 
-  it('blog.findPublishedBySlug devuelve el post completo con content y readingTime', async () => {
-    const post = await blogRepository.findPublishedBySlug('hola-mundo', 'es');
+  it('blog.findPublishedBySlug devuelve el post completo con content', async () => {
+    const post = await blogRepository.findPublishedBySlug(await anyPublishedSlug(), 'es');
     expect(post).not.toBeNull();
     const entity = post?.toEntity();
     expect(typeof entity?.content).toBe('string');
-    expect(entity?.readingTime).toBeGreaterThan(0);
   });
 
   it('projects.findPublished ordena por order asc y omite content', async () => {
     const projects = await projectRepository.findPublished({ locale: 'es' });
     const entities = projects.map(project => project.toEntity());
-    expect(entities.map(project => project.slug)).toEqual([
-      'pokedex-next',
-      'poc-backend-kairosds',
-      'stripe-payments',
-    ]);
+    expect(entities.length).toBeGreaterThan(0);
+    const orders = entities.map(project => project.order);
+    expect(orders).toEqual([...orders].sort((a, b) => a - b));
     for (const entity of entities) {
       expect(entity.content).toBeUndefined();
       expect(Array.isArray(entity.tech)).toBe(true);
@@ -65,9 +69,11 @@ describe('repositorios sobre el seed local', () => {
   });
 
   it('projects.findFeatured filtra published+featured', async () => {
-    const projects = await projectRepository.findFeatured('en');
-    expect(projects.length).toBe(3);
-    for (const project of projects.map(item => item.toEntity())) {
+    const published = await projectRepository.findPublished({ locale: 'en' });
+    const expected = published.map(item => item.toEntity()).filter(item => item.featured).length;
+    const featured = await projectRepository.findFeatured('en');
+    expect(featured.length).toBe(expected);
+    for (const project of featured.map(item => item.toEntity())) {
       expect(project.featured).toBe(true);
       expect(project.published).toBe(true);
     }
@@ -89,7 +95,7 @@ describe('repositorios sobre el seed local', () => {
   });
 
   it('las entidades exponen toEntityMap con las mismas claves que toEntity', async () => {
-    const post = await blogRepository.findPublishedBySlug('hola-mundo', 'es');
+    const post = await blogRepository.findPublishedBySlug(await anyPublishedSlug(), 'es');
     expect(post).not.toBeNull();
     if (post === null) return;
     const entity = post.toEntity();

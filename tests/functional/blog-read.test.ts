@@ -4,11 +4,17 @@ import { buildTestApp, closeTestApp } from '../helpers/build-app';
 import { adminHeaders } from '../helpers/auth';
 
 interface BlogItem {
+  _id?: string;
   slug: string;
   title: string;
   locale: string;
   content?: string;
 }
+
+const FIXTURES = [
+  { slug: 'lectura-fixture-es', locale: 'es' },
+  { slug: 'lectura-fixture-en', locale: 'en' },
+] as const;
 
 interface PaginationMeta {
   page: number;
@@ -28,19 +34,59 @@ interface PaginatedBlog {
  * local: listado sin locale con ambos idiomas y proyección meta (sin
  * `content`), filtro por locale, paginación opt-in con clamps silenciosos,
  * lectura por slug con locale por defecto, 404 Problem Details con el
- * literal heredado y 400 ante slugs no canónicos.
+ * literal heredado y 400 ante slugs no canónicos. La suite provisiona sus
+ * propios posts fixture (uno por locale, publicados) y los retira al
+ * terminar: no depende del contenido que haya en la base.
  */
 describe('blog lecturas públicas', () => {
   let app: FastifyInstance;
   let headers: { authorization: string };
 
+  const removeFixture = async (slug: string, locale: string): Promise<void> => {
+    const found = await app.inject({
+      method: 'GET',
+      url: `/api/v1/admin/blog/${slug}?locale=${locale}`,
+      headers,
+    });
+    if (found.statusCode !== 200) return;
+    const leftover = found.json<BlogItem>();
+    if (leftover._id !== undefined) {
+      await app.inject({ method: 'DELETE', url: `/api/v1/admin/blog/${leftover._id}`, headers });
+    }
+  };
+
+  const createPublishedFixture = async (slug: string, locale: string): Promise<void> => {
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/blog',
+      headers,
+      payload: {
+        slug,
+        title: `Fixture de lecturas ${locale}`,
+        description: 'Post provisionado por la suite de lecturas públicas',
+        content: `Contenido del fixture de lecturas públicas en ${locale}.`,
+        date: '2026-08-15T00:00:00.000Z',
+        locale,
+      },
+    });
+    const id = created.json<BlogItem>()._id ?? '';
+    await app.inject({ method: 'POST', url: `/api/v1/admin/blog/${id}/toggle-published`, headers });
+  };
+
   beforeAll(async () => {
     app = await buildTestApp();
     await app.ready();
     headers = await adminHeaders(app);
+    for (const fixture of FIXTURES) {
+      await removeFixture(fixture.slug, fixture.locale);
+      await createPublishedFixture(fixture.slug, fixture.locale);
+    }
   });
 
   afterAll(async () => {
+    for (const fixture of FIXTURES) {
+      await removeFixture(fixture.slug, fixture.locale);
+    }
     await closeTestApp(app);
   });
 
@@ -50,8 +96,8 @@ describe('blog lecturas públicas', () => {
     const items = response.json<BlogItem[]>();
     expect(Array.isArray(items)).toBe(true);
     const slugs = items.map(item => item.slug);
-    expect(slugs).toContain('hola-mundo');
-    expect(slugs).toContain('hello-world');
+    expect(slugs).toContain('lectura-fixture-es');
+    expect(slugs).toContain('lectura-fixture-en');
     for (const item of items) {
       expect(item).not.toHaveProperty('content');
       expect(typeof item.slug).toBe('string');
@@ -66,8 +112,8 @@ describe('blog lecturas públicas', () => {
     const items = response.json<BlogItem[]>();
     expect(items.every(item => item.locale === 'es')).toBe(true);
     const slugs = items.map(item => item.slug);
-    expect(slugs).toContain('hola-mundo');
-    expect(slugs).not.toContain('hello-world');
+    expect(slugs).toContain('lectura-fixture-es');
+    expect(slugs).not.toContain('lectura-fixture-en');
   });
 
   it('devuelve el envelope paginado al pedir page y limit', async () => {
@@ -98,10 +144,14 @@ describe('blog lecturas públicas', () => {
   });
 
   it('lee un post por slug con locale es por defecto y con content', async () => {
-    const response = await app.inject({ method: 'GET', url: '/api/v1/blog/hola-mundo', headers });
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/blog/lectura-fixture-es',
+      headers,
+    });
     expect(response.statusCode).toBe(200);
     const post = response.json<BlogItem>();
-    expect(post.slug).toBe('hola-mundo');
+    expect(post.slug).toBe('lectura-fixture-es');
     expect(post.locale).toBe('es');
     expect(typeof post.content).toBe('string');
   });
@@ -109,7 +159,7 @@ describe('blog lecturas públicas', () => {
   it('responde 404 Problem Details si el slug no existe en el locale pedido', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/api/v1/blog/hola-mundo?locale=en',
+      url: '/api/v1/blog/lectura-fixture-es?locale=en',
       headers,
     });
     expect(response.statusCode).toBe(404);
