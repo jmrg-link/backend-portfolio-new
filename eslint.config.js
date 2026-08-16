@@ -17,7 +17,7 @@ import prettier from 'eslint-config-prettier';
  */
 export default tseslint.config(
   {
-    ignores: ['dist/', 'node_modules/', 'certs/', 'reference-docs/', '.claude/'],
+    ignores: ['dist/', 'node_modules/', 'certs/', '**/.*/'],
   },
   eslint.configs.recommended,
   tseslint.configs.recommendedTypeChecked,
