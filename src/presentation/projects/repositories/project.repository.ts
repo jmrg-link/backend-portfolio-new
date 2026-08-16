@@ -33,7 +33,7 @@ export class ProjectRepository
       skip,
       limit,
       sort: { order: 1, date: -1, _id: -1 },
-      projection: { content: 0 },
+      projection: { content: 0, published: 0, createdAt: 0, updatedAt: 0 },
     });
   }
 
@@ -41,7 +41,7 @@ export class ProjectRepository
     return this.findMany({
       filter: { published: true, featured: true, ...(locale !== undefined && { locale }) },
       sort: { order: 1, date: -1 },
-      projection: { content: 0 },
+      projection: { content: 0, published: 0, createdAt: 0, updatedAt: 0 },
     });
   }
 

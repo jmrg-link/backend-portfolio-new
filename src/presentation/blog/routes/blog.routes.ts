@@ -3,6 +3,7 @@ import {
   blogListQuerySchema,
   blogPostIdParamsSchema,
   blogPostListResponseSchema,
+  blogPostSummaryListResponseSchema,
   blogPostResponseSchema,
   blogSlugParamsSchema,
   blogSlugQuerySchema,
@@ -47,7 +48,7 @@ const blogRoutes: FastifyPluginAsync = async app => {
         summary: 'Listar posts publicados',
         querystring: blogListQuerySchema,
         response: {
-          200: blogPostListResponseSchema,
+          200: blogPostSummaryListResponseSchema,
           400: problemDetailsSchema,
           401: problemDetailsSchema,
         },

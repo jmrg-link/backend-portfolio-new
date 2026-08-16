@@ -101,7 +101,8 @@ describe('projects lecturas públicas', () => {
     const items = response.json<ProjectItem[]>();
     expect(Array.isArray(items)).toBe(true);
     expect(items.length).toBeGreaterThan(0);
-    expect(items.every(item => item.published && item.featured)).toBe(true);
+    expect(items.every(item => item.featured)).toBe(true);
+    expect(items.every(item => item.published === undefined)).toBe(true);
   });
 
   it('lee un proyecto por slug con content presente', async () => {

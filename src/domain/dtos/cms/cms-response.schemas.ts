@@ -71,9 +71,24 @@ export const skillResponseSchema = z.object({
 });
 
 /**
+ * Forma reducida de una skill para el listado público.
+ *
+ * @remarks
+ * `published` repite el filtro de la petición para todos los elementos y
+ * las marcas de tiempo de la colección no forman parte del contrato de
+ * lectura; en una colección de documentos pequeños esos tres campos pesan
+ * tanto como el dato.
+ */
+export const skillSummarySchema = skillResponseSchema.omit({
+  published: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+/**
  * Listado de skills.
  */
-export const skillListSchema = z.array(skillResponseSchema);
+export const skillListSchema = z.array(skillSummarySchema);
 
 /**
  * Representación de salida de una experiencia laboral (una por locale).
@@ -93,9 +108,19 @@ export const experienceResponseSchema = z.object({
 });
 
 /**
+ * Forma reducida de una experiencia para el listado público: sin los campos
+ * de administración ni las marcas de tiempo de la colección.
+ */
+export const experienceSummarySchema = experienceResponseSchema.omit({
+  published: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+/**
  * Listado de experiencias.
  */
-export const experienceListSchema = z.array(experienceResponseSchema);
+export const experienceListSchema = z.array(experienceSummarySchema);
 
 /**
  * Representación de salida de un testimonio (uno por locale).
@@ -116,6 +141,16 @@ export const testimonialResponseSchema = z.object({
 });
 
 /**
+ * Forma reducida de un testimonio para el listado público; `date` es un
+ * campo propio del contenido y se conserva.
+ */
+export const testimonialSummarySchema = testimonialResponseSchema.omit({
+  published: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+/**
  * Listado de testimonios.
  */
-export const testimonialListSchema = z.array(testimonialResponseSchema);
+export const testimonialListSchema = z.array(testimonialSummarySchema);

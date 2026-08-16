@@ -2,6 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildTestApp, closeTestApp } from '../helpers/build-app';
 import { adminHeaders } from '../helpers/auth';
+import { DatabaseConnector } from '@infrastructure/dbs/config/mongodb';
+import { skillModel } from '@infrastructure/dbs/models/mongodb/skill';
 
 interface SiteSettingsBody {
   locale: string;
@@ -19,15 +21,16 @@ interface AboutBody {
 }
 
 interface SkillBody {
+  _id?: string;
   name: string;
   category: string;
-  published: boolean;
+  published?: boolean;
 }
 
 interface ExperienceBody {
   locale: string;
   company: string;
-  published: boolean;
+  published?: boolean;
 }
 
 interface TestimonialBody {
@@ -105,12 +108,40 @@ describe('lecturas públicas del CMS', () => {
     expect(typeof body.eduContent).toBe('string');
   });
 
+  it('skills omite del listado por defecto una skill despublicada', async () => {
+    const model = skillModel(DatabaseConnector.getPortfolioDb());
+    const draft = await model.create({
+      name: 'fixture-skill-despublicada',
+      category: 'fixture',
+      icon: 'fixture',
+      order: 999,
+      published: false,
+    });
+
+    try {
+      const listed = await app.inject({ method: 'GET', url: '/api/v1/cms/skills', headers });
+      const names = listed.json<SkillBody[]>().map(skill => skill.name);
+      expect(names).not.toContain('fixture-skill-despublicada');
+
+      const drafts = await app.inject({
+        method: 'GET',
+        url: '/api/v1/cms/skills?published=false',
+        headers,
+      });
+      expect(drafts.json<SkillBody[]>().map(skill => skill.name)).toContain(
+        'fixture-skill-despublicada'
+      );
+    } finally {
+      await model.deleteOne({ _id: draft._id });
+    }
+  });
+
   it('skills responde solo las publicadas por defecto, con nombre y categoría', async () => {
     const response = await app.inject({ method: 'GET', url: '/api/v1/cms/skills', headers });
     expect(response.statusCode).toBe(200);
     const skills = response.json<SkillBody[]>();
     expect(skills.length).toBeGreaterThan(0);
-    expect(skills.every(skill => skill.published)).toBe(true);
+    expect(skills.every(skill => skill.published === undefined)).toBe(true);
     expect(skills.every(skill => typeof skill.name === 'string' && skill.name.length > 0)).toBe(
       true
     );
@@ -153,7 +184,7 @@ describe('lecturas públicas del CMS', () => {
     const experiences = response.json<ExperienceBody[]>();
     expect(experiences.length).toBeGreaterThan(0);
     expect(experiences.every(experience => experience.locale === 'es')).toBe(true);
-    expect(experiences.every(experience => experience.published)).toBe(true);
+    expect(experiences.every(experience => experience.published === undefined)).toBe(true);
   });
 
   it('experiences con locale en responde el listado en', async () => {

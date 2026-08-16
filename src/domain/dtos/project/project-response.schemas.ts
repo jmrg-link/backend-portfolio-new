@@ -25,9 +25,25 @@ export const projectResponseSchema = z.object({
 });
 
 /**
- * Colección de proyectos: la forma de un listado sin paginar.
+ * Forma reducida de un proyecto para los listados públicos: omite `content`
+ * y los campos que la lectura pública no necesita.
+ *
+ * @remarks
+ * `published` es invariante en las rutas públicas —solo se sirven proyectos
+ * publicados— y las marcas de tiempo de la colección no forman parte del
+ * contrato de lectura.
  */
-export const projectListSchema = z.array(projectResponseSchema);
+export const projectSummarySchema = projectResponseSchema.omit({
+  content: true,
+  published: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+/**
+ * Colección de proyectos reducidos: la forma de un listado sin paginar.
+ */
+export const projectListSchema = z.array(projectSummarySchema);
 
 /**
  * Envelope de un listado paginado de proyectos: los elementos y sus

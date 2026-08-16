@@ -18,6 +18,7 @@ export class ExperienceRepository
     return this.findMany({
       filter: { locale, published: true },
       sort: { order: 1 },
+      projection: { published: 0, createdAt: 0, updatedAt: 0 },
     });
   }
 

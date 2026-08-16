@@ -40,7 +40,7 @@ export class BlogRepository
       skip,
       limit,
       sort: { date: -1, _id: -1 },
-      projection: { content: 0 },
+      projection: { content: 0, published: 0, createdAt: 0, updatedAt: 0 },
     });
   }
 

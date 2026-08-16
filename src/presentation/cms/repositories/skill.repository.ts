@@ -23,6 +23,7 @@ export class SkillRepository
     return this.findMany({
       filter: { published, ...(category !== undefined && { category }) },
       sort: { category: 1, order: 1 },
+      projection: { published: 0, createdAt: 0, updatedAt: 0 },
     });
   }
 
